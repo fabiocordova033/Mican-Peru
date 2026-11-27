@@ -4,6 +4,8 @@ Backend de **Mican**, una app al estilo inDrive que une a dueños de perros y ga
 
 > Proyecto universitario. Los montos y reglas marcados como *provisionales* se validarán en el piloto.
 
+> La app móvil (Flutter, Android e iOS) está en [`app/`](app/README.md).
+
 ## Stack
 
 | Pieza | Uso en Mican |
