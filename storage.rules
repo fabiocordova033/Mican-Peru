@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Mican Peru · Reglas de Cloud Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    function autenticado() { return request.auth != null; }
+    function esAdmin() { return autenticado() && request.auth.token.admin == true; }
+    function esImagen(maxMB) {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < maxMB * 1024 * 1024;
+    }
+    function servicio(id) {
+      return firestore.get(/databases/(default)/documents/servicios/$(id)).data;
+    }
+
+    // HU-03: documentos de verificación. Datos sensibles: solo el propio
+    // cuidador sube y solo el equipo de verificación (admin) los lee.
+    // El certificado de antecedentes se borra al aprobar.
+    match /verificaciones/{uid}/{archivo} {
+      allow read: if esAdmin();
+      allow create, update: if autenticado() && request.auth.uid == uid
+        && archivo.matches('^(dniFrente|dniReverso|antecedentes|selfie|cv)(\\.(jpg|jpeg|png|pdf))?$')
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType == 'application/pdf');
+      allow delete: if false;
+    }
+
+    // HU-17: fotos del servicio. Las sube el cuidador asignado con el servicio en curso.
+    match /servicios/{servicioId}/fotos/{archivo} {
+      allow read: if esAdmin()
+        || (autenticado() && request.auth.uid in servicio(servicioId).participantes);
+      allow create: if autenticado()
+        && servicio(servicioId).cuidadorId == request.auth.uid
+        && servicio(servicioId).estado == 'en_curso'
+        && esImagen(10);
+      allow update, delete: if false;
+    }
+
+    // Foto de perfil del usuario y fotos de sus mascotas.
+    match /usuarios/{uid}/{carpeta}/{archivo} {
+      allow read: if autenticado();
+      allow write: if autenticado() && request.auth.uid == uid
+        && carpeta in ['perfil', 'mascotas']
+        && (request.resource == null || esImagen(5));
+    }
+
+    // Imágenes de anuncios (las sube el equipo de Mican).
+    match /anuncios/{archivo} {
+      allow read: if autenticado();
+      allow write: if esAdmin();
+    }
+
+    match /{todo=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,196 @@
+rules_version = '2';
+
+// Mican Peru · Reglas de Firestore
+//
+// Principio: todo lo que mueve dinero, cambia estados o aplica reglas de
+// negocio pasa por Cloud Functions (Admin SDK, que ignora estas reglas).
+// La app solo LEE y escribe directamente en tres lugares:
+//   1. la ruta en vivo del paseo (servicios/{id}/ruta),
+//   2. los mensajes de texto del chat (chats/{id}/mensajes),
+//   3. sus tokens de notificación (usuarios/{uid}/dispositivos).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funciones auxiliares ----------
+    function autenticado() { return request.auth != null; }
+    function yo() { return request.auth.uid; }
+    function esAdmin() { return autenticado() && request.auth.token.admin == true; }
+    function usuario() { return get(/databases/$(database)/documents/usuarios/$(yo())).data; }
+    function esPremium() {
+      let u = usuario();
+      return u.premiumHasta != null && u.premiumHasta > request.time;
+    }
+    function cuidadorVerificado() {
+      return get(/databases/$(database)/documents/perfilesPublicos/$(yo())).data.verificado == true;
+    }
+    function servicio(id) { return get(/databases/$(database)/documents/servicios/$(id)).data; }
+    function participa(s) { return autenticado() && yo() in s.participantes; }
+
+    // ---------- Usuarios (privado: teléfono, DNI, fecha de nacimiento, consentimientos) ----------
+    match /usuarios/{uid} {
+      allow read: if autenticado() && (yo() == uid || esAdmin());
+      allow write: if false;
+
+      // Tokens FCM del dispositivo.
+      match /dispositivos/{token} {
+        allow read, delete: if autenticado() && yo() == uid;
+        allow create, update: if autenticado() && yo() == uid
+          && request.resource.data.keys().hasOnly(['plataforma', 'actualizadoEn'])
+          && request.resource.data.plataforma in ['android', 'ios', 'web'];
+      }
+    }
+
+    // ---------- Perfil público (sin DNI ni teléfono, HU-05) ----------
+    match /perfilesPublicos/{uid} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    // ---------- Mascotas (solo su dueño; el cuidador ve una copia en la solicitud) ----------
+    match /mascotas/{id} {
+      allow read: if autenticado() && (resource.data.duenoId == yo() || esAdmin());
+      allow write: if false;
+    }
+
+    // ---------- Verificación del cuidador ----------
+    match /verificaciones/{uid} {
+      allow read: if autenticado() && (yo() == uid || esAdmin());
+      allow write: if false;
+    }
+
+    // ---------- Billetera y pagos ----------
+    match /billeteras/{uid} {
+      allow read: if autenticado() && (yo() == uid || esAdmin());
+      allow write: if false;
+      match /movimientos/{id} {
+        allow read: if autenticado() && (yo() == uid || esAdmin());
+        allow write: if false;
+      }
+    }
+    match /pagos/{id} {
+      allow read: if autenticado() && (resource.data.uid == yo() || esAdmin());
+      allow write: if false;
+    }
+
+    // ---------- Servicios (solicitud + servicio) ----------
+    match /servicios/{id} {
+      // - Participantes: el cuidador siempre; el dueño sin Premium solo los
+      //   últimos 30 días (HU-20). La consulta de la app debe filtrar por
+      //   creadoEn para que la regla se cumpla.
+      // - Cuidadores verificados: solicitudes que están buscando (HU-12).
+      allow read: if esAdmin()
+        || (autenticado() && resource.data.cuidadorId == yo())
+        || (autenticado() && resource.data.duenoId == yo()
+            && (resource.data.creadoEn > request.time - duration.value(30, 'd') || esPremium()))
+        || (autenticado() && resource.data.estado == 'buscando' && cuidadorVerificado());
+      allow write: if false;
+
+      // El dueño ve todas las ofertas; cada cuidador, solo la suya.
+      match /ofertas/{cuidadorId} {
+        allow read: if autenticado()
+          && (yo() == cuidadorId || servicio(id).duenoId == yo() || esAdmin());
+        allow write: if false;
+      }
+
+      // HU-16: ruta en vivo. Solo el cuidador asignado y con el servicio en curso.
+      match /ruta/{punto} {
+        allow read: if participa(servicio(id)) || esAdmin();
+        allow create: if autenticado()
+          && servicio(id).cuidadorId == yo()
+          && servicio(id).estado == 'en_curso'
+          && request.resource.data.keys().hasOnly(['lat', 'lng', 'registradoEn'])
+          && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90
+          && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180
+          && request.resource.data.registradoEn == request.time;
+        allow update, delete: if false;
+      }
+
+      match /fotos/{foto} {
+        allow read: if participa(servicio(id)) || esAdmin();
+        allow write: if false;
+      }
+
+      match /eventos/{evento} {
+        allow read: if participa(servicio(id)) || esAdmin();
+        allow write: if false;
+      }
+
+      // HU-24: oculta hasta que se revela; su autor siempre la ve.
+      match /calificaciones/{autorId} {
+        allow read: if autenticado()
+          && ((participa(servicio(id)) && (resource.data.visible == true || yo() == autorId)) || esAdmin());
+        allow write: if false;
+      }
+
+      // HU-05: teléfonos visibles desde que se confirma hasta 24 h después de terminar.
+      match /privado/{doc} {
+        allow read: if autenticado() && yo() in resource.data.participantes
+          && (servicio(id).estado in ['confirmado', 'en_curso']
+              || (servicio(id).estado == 'completado'
+                  && resource.data.visibleHasta != null
+                  && resource.data.visibleHasta > request.time));
+        allow write: if false;
+      }
+    }
+
+    // ---------- Chat (HU-19) ----------
+    match /chats/{chatId} {
+      allow read: if autenticado() && (yo() in resource.data.participantes || esAdmin());
+      // Solo para marcar como leído: pone su propio contador en 0.
+      allow update: if autenticado() && yo() in resource.data.participantes
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['noLeidos'])
+        && request.resource.data.noLeidos.diff(resource.data.noLeidos).affectedKeys().hasOnly([yo()])
+        && request.resource.data.noLeidos[yo()] == 0;
+
+      match /mensajes/{mensajeId} {
+        function chat() { return get(/databases/$(database)/documents/chats/$(chatId)).data; }
+        allow read: if autenticado() && (yo() in chat().participantes || esAdmin());
+        allow create: if autenticado()
+          && yo() in chat().participantes
+          && chat().abierto == true
+          && (chat().cierraEn == null || chat().cierraEn > request.time)
+          && request.resource.data.keys().hasOnly(['autorId', 'tipo', 'texto', 'creadoEn'])
+          && request.resource.data.autorId == yo()
+          && request.resource.data.tipo == 'texto'
+          && request.resource.data.texto is string
+          && request.resource.data.texto.size() > 0
+          && request.resource.data.texto.size() <= 1000
+          && request.resource.data.creadoEn == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    // ---------- Legal y soporte ----------
+    match /reclamos/{id} {
+      allow read: if autenticado() && (resource.data.uid == yo() || esAdmin());
+      allow write: if false;
+    }
+    match /solicitudesArco/{id} {
+      allow read: if autenticado() && (resource.data.uid == yo() || esAdmin());
+      allow write: if false;
+    }
+    match /emergencias/{id} {
+      allow read: if autenticado() && (resource.data.reportadoPor == yo() || esAdmin());
+      allow write: if false;
+    }
+    match /soporteTickets/{id} {
+      allow read: if autenticado() && (resource.data.uid == yo() || esAdmin());
+      allow write: if false;
+    }
+    match /incidentes/{id} {
+      allow read: if esAdmin();
+      allow write: if false;
+    }
+
+    // ---------- Anuncios de patrocinadores (HU-26) ----------
+    match /anuncios/{id} {
+      allow read: if autenticado();
+      allow write: if esAdmin();
+    }
+
+    // Todo lo demás (contadores, mail, ubicacionesCuidadores...) es solo del servidor.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

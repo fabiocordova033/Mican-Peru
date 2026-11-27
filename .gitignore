@@ -1,0 +1,15 @@
+node_modules/
+functions/lib/
+*.log
+.env
+.env.*
+!.env.example
+functions/.secret.local
+functions/.runtimeconfig.json
+service-account*.json
+firebase-debug*.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+emulator-data/
+coverage/
