@@ -95,16 +95,38 @@ flutter analyze
 flutter test
 ```
 
+## Ubicación en segundo plano (HU-16)
+
+Mientras un paseo o traslado está **en curso**, el cuidador sigue enviando la ruta aunque
+bloquee el celular o cambie de app. Se hace sin pedir "Permitir todo el tiempo":
+
+- **Android:** servicio en primer plano de tipo `location` con la notificación fija
+  "Paseo en curso" (`FOREGROUND_SERVICE_LOCATION`). Basta "Mientras se usa la app", así que
+  Google Play no pide el formulario de ubicación en segundo plano. Sí hay que declarar en
+  Play Console el tipo de servicio en primer plano "Ubicación" con un video corto del paseo.
+- **iOS:** `UIBackgroundModes = location` y el indicador azul de ubicación visible.
+- **Aviso destacado:** antes del primer paseo el cuidador ve una hoja que explica qué se
+  recoge, para qué y que sigue en segundo plano solo durante el servicio
+  (`pantallas/servicio/aviso_ubicacion_paseo.dart`). Si lo rechaza, no inicia.
+
+## Ícono y pantalla de inicio
+
+Las imágenes fuente están en `assets/marca/` (marca de Figma: cuadro `#1F6F82` con la
+huella naranja). Para regenerarlas después de cambiar esos PNG:
+
+```bash
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+git checkout ios/Runner.xcodeproj/project.pbxproj   # el generador cambia un ajuste que no hace falta
+```
+
 ## Pendiente
 
 - **Búsqueda de direcciones:** el destino del transporte usa por ahora las coordenadas del
   recojo; falta autocompletar con Google Places cuando haya API key.
-- **Reseñas públicas en el perfil del cuidador:** el backend aún no expone una lista de
-  reseñas reveladas que cualquier dueño pueda leer; hoy se muestran nota, etiquetas y servicios.
-- **Rechazar una oferta** solo la oculta en el celular del dueño (no hay callable para eso).
 - **Pagos reales:** la pasarela del backend está simulada; la app abre la `urlPago` que devuelve.
-- **Ruta en segundo plano:** el GPS registra la ruta mientras la app está abierta. Para seguir
-  con la pantalla apagada hace falta un servicio en primer plano (Android) y el modo
-  "location" de fondo (iOS).
-- Íconos de la app, pantalla de arranque nativa y textos legales definitivos.
+- **Ruta si el sistema cierra la app:** el GPS sigue con la pantalla apagada o la app en segundo
+  plano, pero si el usuario la cierra a la fuerza (o el sistema la mata) la ruta se detiene
+  hasta que vuelva a abrirla.
+- Textos legales definitivos.
 - Fuente Nunito: licencia SIL Open Font License 1.1 (Google Fonts).

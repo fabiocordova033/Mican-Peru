@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Huella de Mican en blanco para la barra de estado (notificación "Paseo en curso"). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M17.75,21.25C19.2688,21.25 20.5,19.683 20.5,17.75C20.5,15.817 19.2688,14.25 17.75,14.25C16.2312,14.25 15,15.817 15,17.75C15,19.683 16.2312,21.25 17.75,21.25Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M24,18.75C25.5188,18.75 26.75,17.183 26.75,15.25C26.75,13.317 25.5188,11.75 24,11.75C22.4812,11.75 21.25,13.317 21.25,15.25C21.25,17.183 22.4812,18.75 24,18.75Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M30.25,21.25C31.7688,21.25 33,19.683 33,17.75C33,15.817 31.7688,14.25 30.25,14.25C28.7312,14.25 27.5,15.817 27.5,17.75C27.5,19.683 28.7312,21.25 30.25,21.25Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M34,27C35.3807,27 36.5,25.6569 36.5,24C36.5,22.3431 35.3807,21 34,21C32.6193,21 31.5,22.3431 31.5,24C31.5,25.6569 32.6193,27 34,27Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M14,27C15.3807,27 16.5,25.6569 16.5,24C16.5,22.3431 15.3807,21 14,21C12.6193,21 11.5,22.3431 11.5,24C11.5,25.6569 12.6193,27 14,27Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M24,22.75C27.75,22.75 31.5,27.75 31.5,31.5C31.5,32.4946 31.1049,33.4484 30.4017,34.1517C29.6984,34.8549 28.7446,35.25 27.75,35.25C26.25,35.25 25.25,34.5 24,34.5C22.75,34.5 21.75,35.25 20.25,35.25C19.2554,35.25 18.3016,34.8549 17.5983,34.1517C16.8951,33.4484 16.5,32.4946 16.5,31.5C16.5,27.75 20.25,22.75 24,22.75Z"/>
+</vector>

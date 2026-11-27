@@ -18,6 +18,7 @@ import '../../tema/tipografia.dart';
 import '../../util/formato.dart';
 import '../../util/geo.dart';
 import '../../util/ui.dart';
+import '../servicio/aviso_ubicacion_paseo.dart';
 import '../servicio/emergencia.dart';
 import '../servicio/fotos.dart';
 import '../servicio/seguimiento.dart' show PildoraMapa, transcurrido;
@@ -63,11 +64,16 @@ class _ServicioCuidadorState extends ConsumerState<ServicioCuidador> {
   }
 
   /// La visita a domicilio no registra ruta: solo paseo y transporte.
+  bool get _registraRuta => s.tipo != TipoServicio.visita;
+
+  /// HU-16: mientras el servicio está en curso, la ruta se sigue registrando
+  /// con la app en segundo plano o la pantalla apagada (servicio en primer
+  /// plano en Android, indicador azul en iOS). Se detiene al salir de "en curso".
   void _sincronizarGps() {
-    final registrar = _enCurso && s.tipo != TipoServicio.visita;
+    final registrar = _enCurso && _registraRuta;
     if (registrar && _gps == null) {
       final col = ref.read(firestoreProvider).collection('servicios/${s.id}/ruta');
-      _gps = ref.read(ubicacionProvider).seguir().listen((p) {
+      _gps = ref.read(ubicacionProvider).seguir(enSegundoPlano: true).listen((p) {
         col.add({'lat': p.lat, 'lng': p.lng, 'registradoEn': FieldValue.serverTimestamp()}).ignore();
       }, onError: (_) {});
     } else if (!registrar) {
@@ -77,8 +83,15 @@ class _ServicioCuidadorState extends ConsumerState<ServicioCuidador> {
   }
 
   Future<void> _iniciar() async {
-    setState(() => _iniciando = true);
     final ubicacion = ref.read(ubicacionProvider);
+    // Aviso destacado antes del primer paseo (políticas de Google Play y App Store).
+    if (_registraRuta && !await ubicacion.avisoSegundoPlanoVisto()) {
+      if (!mounted) return;
+      if (!await mostrarAvisoUbicacionPaseo(context)) return;
+      await ubicacion.marcarAvisoSegundoPlanoVisto();
+    }
+    if (!mounted) return;
+    setState(() => _iniciando = true);
     if (!await ubicacion.tienePermiso()) await ubicacion.pedirPermiso();
     final u = await ubicacion.actual();
     if (!mounted) return;

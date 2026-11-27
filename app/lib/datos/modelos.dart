@@ -441,6 +441,7 @@ class Oferta {
     this.minutosLlegada = 0,
     required this.estado,
     required this.expiraEn,
+    this.rechazadaPorDueno = false,
   });
 
   factory Oferta.desde(String id, Json d) => Oferta(
@@ -456,6 +457,7 @@ class Oferta {
     minutosLlegada: entero(d['minutosLlegada']),
     estado: d['estado'] as String? ?? 'pendiente',
     expiraEn: fecha(d['expiraEn']) ?? DateTime.now(),
+    rechazadaPorDueno: d['rechazadaPorDueno'] == true,
   );
 
   final String cuidadorId;
@@ -468,6 +470,9 @@ class Oferta {
   final bool esContraoferta;
   final double distanciaKm;
   final int minutosLlegada;
+
+  /// `true` si el dueño la rechazó con "Rechazar" (y no porque eligió otra).
+  final bool rechazadaPorDueno;
   final String estado;
   final DateTime expiraEn;
 
@@ -637,4 +642,49 @@ class Anuncio {
   final String titulo;
   final String vigencia;
   final String? url;
+}
+
+/// Reseña pública de un cuidador: `perfilesPublicos/{uid}/resenas/{servicioId}`.
+/// La escribe el backend al revelar las calificaciones (HU-24).
+class Resena {
+  Resena({
+    required this.id,
+    required this.autorNombre,
+    this.autorFotoUrl,
+    required this.estrellas,
+    this.etiquetas = const [],
+    this.comentario = '',
+    this.tipoServicio,
+    this.mascotaNombre,
+    this.creadoEn,
+  });
+
+  factory Resena.desde(String id, Json d) => Resena(
+    id: id,
+    autorNombre: d['autorNombre'] as String? ?? 'Dueño de Mican',
+    autorFotoUrl: d['autorFotoUrl'] as String?,
+    estrellas: entero(d['estrellas']).clamp(1, 5),
+    etiquetas: textos(d['etiquetas']),
+    comentario: d['comentario'] as String? ?? '',
+    tipoServicio: d['tipoServicio'] == null ? null : TipoServicio.desde(d['tipoServicio']),
+    mascotaNombre: d['mascotaNombre'] as String?,
+    creadoEn: fecha(d['creadoEn']),
+  );
+
+  final String id;
+  final String autorNombre;
+  final String? autorFotoUrl;
+  final int estrellas;
+  final List<String> etiquetas;
+  final String comentario;
+  final TipoServicio? tipoServicio;
+  final String? mascotaNombre;
+  final DateTime? creadoEn;
+
+  /// "Paseo con Rocky", "Visita a domicilio" o vacío.
+  String get contexto {
+    final t = tipoServicio?.nombre;
+    if (t == null) return '';
+    return mascotaNombre == null || mascotaNombre!.isEmpty ? t : '$t con $mascotaNombre';
+  }
 }

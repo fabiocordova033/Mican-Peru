@@ -158,6 +158,9 @@ export async function purgarCuenta(uid: string): Promise<void> {
   await enLotes(mascotas.docs, (b, d) => b.delete(d.ref));
   await enLotes(comoDueno.docs, (b, d) => b.update(d.ref, { duenoNombre: anonimo, "origen.direccion": "", indicaciones: "" }));
   await enLotes(comoCuidador.docs, (b, d) => b.update(d.ref, { cuidadorNombre: anonimo }));
+  // Reseñas públicas que escribió: se conservan para el cuidador, sin su nombre ni foto.
+  const resenas = await db.collectionGroup(COL.resenas).where("autorId", "==", uid).get();
+  await enLotes(resenas.docs, (b, d) => b.update(d.ref, { autorNombre: anonimo, autorFotoUrl: null }));
   for (const s of [...comoDueno.docs, ...comoCuidador.docs]) {
     await db.recursiveDelete(s.ref.collection(COL.privado));
     await db.recursiveDelete(s.ref.collection(COL.ruta));

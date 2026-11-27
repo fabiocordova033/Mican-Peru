@@ -63,7 +63,7 @@ class _Estado extends ConsumerState<PantallaPermisoUbicacion> {
                   FilaUso(
                     icono: MicanIcono.ruta,
                     titulo: 'Ruta del paseo en vivo',
-                    texto: 'Solo mientras hay un servicio activo',
+                    texto: 'Solo mientras hay un servicio en curso, aunque la app esté en segundo plano',
                   ),
                   SizedBox(height: 14),
                   FilaUso(

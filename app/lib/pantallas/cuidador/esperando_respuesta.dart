@@ -27,6 +27,8 @@ class EsperandoRespuesta extends ConsumerWidget {
     final restante = oferta == null ? 0 : oferta.expiraEn.difference(ahora).inSeconds.clamp(0, 60);
     final vigente = oferta != null && oferta.estado == 'pendiente' && restante > 0;
     final rechazada = oferta != null && oferta.estado != 'pendiente';
+    // El dueño pulsó "Rechazar" y la solicitud sigue abierta: puede ofertar otra vez.
+    final puedeReofertar = oferta?.rechazadaPorDueno == true && s.estado == EstadoServicio.buscando;
 
     return PantallaMican(
       titulo: 'Tu oferta',
@@ -36,7 +38,11 @@ class EsperandoRespuesta extends ConsumerWidget {
         children: [
           Expanded(
             child: Boton(
-              vigente ? 'Seguir viendo solicitudes' : 'Volver al inicio',
+              vigente
+                  ? 'Seguir viendo solicitudes'
+                  : puedeReofertar
+                  ? 'Ver solicitudes y ofertar de nuevo'
+                  : 'Volver al inicio',
               tipo: vigente ? TipoBoton.contorno : TipoBoton.primario,
               alPresionar: () => context.go('/app'),
             ),
@@ -68,6 +74,8 @@ class EsperandoRespuesta extends ConsumerWidget {
         Text(
           vigente
               ? 'Esperando a ${s.duenoNombre.split(' ').first}…'
+              : puedeReofertar
+              ? 'El dueño rechazó tu oferta'
               : rechazada
               ? 'El dueño eligió otra oferta'
               : 'Tu oferta venció',
@@ -77,6 +85,8 @@ class EsperandoRespuesta extends ConsumerWidget {
         Text(
           vigente
               ? 'Te avisaremos apenas acepte. Mientras tanto puedes ver otras solicitudes.'
+              : puedeReofertar
+              ? 'No se cobró nada. La solicitud sigue abierta: puedes enviar otra oferta desde el inicio.'
               : 'No te preocupes: no se cobró nada. Hay más solicitudes cerca de ti.',
           style: MicanTexto.cuerpo.copyWith(color: MicanColores.textoSecundario),
           textAlign: TextAlign.center,
