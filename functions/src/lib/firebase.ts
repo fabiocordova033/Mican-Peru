@@ -30,6 +30,7 @@ export const COL = {
   ruta: "ruta",
   fotos: "fotos",
   calificaciones: "calificaciones",
+  resenas: "resenas",
   eventos: "eventos",
   privado: "privado",
   chats: "chats",

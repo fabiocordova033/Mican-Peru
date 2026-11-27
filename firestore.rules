@@ -44,6 +44,13 @@ service cloud.firestore {
     match /perfilesPublicos/{uid} {
       allow read: if autenticado();
       allow write: if false;
+
+      // HU-24: reseñas públicas del cuidador, ya reveladas. Las escribe el
+      // servidor al revelar las calificaciones; no incluyen datos de contacto.
+      match /resenas/{servicioId} {
+        allow read: if autenticado();
+        allow write: if false;
+      }
     }
 
     // ---------- Mascotas (solo su dueño; el cuidador ve una copia en la solicitud) ----------

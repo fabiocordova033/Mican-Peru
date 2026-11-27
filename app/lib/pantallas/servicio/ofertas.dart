@@ -25,8 +25,8 @@ class PantallaOfertas extends ConsumerStatefulWidget {
 }
 
 class _PantallaOfertasState extends ConsumerState<PantallaOfertas> {
-  /// "Rechazar" solo oculta la oferta en este dispositivo: la oferta vence
-  /// sola a los 60 s y, al aceptar otra, el backend rechaza el resto.
+  /// Ofertas que se están rechazando: se ocultan al instante mientras el
+  /// backend marca la oferta como rechazada y avisa al cuidador.
   final _ocultas = <String>{};
   String? _aceptando;
   bool _subiendo = false;
@@ -38,6 +38,13 @@ class _PantallaOfertasState extends ConsumerState<PantallaOfertas> {
     await intentar(context, () => ref.read(apiProvider).aceptarOferta(s.id, o.cuidadorId));
     if (mounted) setState(() => _aceptando = null);
     // El servicio pasa a "confirmado" y PantallaServicio cambia sola.
+  }
+
+  Future<void> _rechazar(Oferta o) async {
+    setState(() => _ocultas.add(o.cuidadorId));
+    final ok = await intentar(context, () => ref.read(apiProvider).rechazarOferta(s.id, o.cuidadorId));
+    // Si falló (p. ej. la oferta ya venció), la volvemos a mostrar solo si sigue pendiente.
+    if (!ok && mounted) setState(() => _ocultas.remove(o.cuidadorId));
   }
 
   Future<void> _subirPrecio(int delta) async {
@@ -141,7 +148,7 @@ class _PantallaOfertasState extends ConsumerState<PantallaOfertas> {
             segundosRestantes: o.expiraEn.difference(ahora).inSeconds,
             aceptando: _aceptando == o.cuidadorId,
             alAceptar: _aceptando == null ? () => _aceptar(o) : null,
-            alRechazar: () => setState(() => _ocultas.add(o.cuidadorId)),
+            alRechazar: _aceptando == null ? () => _rechazar(o) : null,
             alVerPerfil: () => context.push('/cuidador/${o.cuidadorId}?servicio=${s.id}&precio=${o.precio}'),
           ),
         Column(

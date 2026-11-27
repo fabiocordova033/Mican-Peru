@@ -9,13 +9,14 @@ Montos en **céntimos** (enteros). Fechas como `Timestamp`. "Solo servidor" sign
 | `usuarios/{uid}` | El propio usuario, admin | Solo servidor | Nombre, teléfono, DNI, fecha de nacimiento, roles, plan, consentimientos, estado de cuenta |
 | `usuarios/{uid}/dispositivos/{token}` | El propio usuario | El propio usuario | Token FCM (`plataforma`, `actualizadoEn`) |
 | `perfilesPublicos/{uid}` | Cualquier usuario autenticado | Solo servidor | Nombre, foto, edad, verificado, disponible, nivel, promedio, reseñas, etiquetas, experiencia, certificaciones, educación. **Sin DNI ni teléfono** |
+| `perfilesPublicos/{uid}/resenas/{servicioId}` | Cualquier usuario autenticado | Solo servidor | Reseña pública del cuidador, ya revelada: `autorNombre` abreviado ("Ana P."), `autorFotoUrl`, `estrellas`, `etiquetas`, `comentario`, `tipoServicio`, `mascotaNombre`, `creadoEn`. Si el autor elimina su cuenta queda como "Usuario eliminado" |
 | `mascotas/{id}` | Su dueño | Solo servidor | `duenoId`, nombre, especie, raza, tamaño, edad, peso, foto, vacunas (con estado), temperamento, alertas, notas |
 | `verificaciones/{uid}` | El cuidador, admin | Solo servidor | Estado (`incompleta`, `en_revision`, `aprobada`, `rechazada`, `revocada`), estado de cada documento, motivo de rechazo, plazo de 48 h |
 | `billeteras/{uid}` | El cuidador, admin | Solo servidor | `saldo` |
 | `billeteras/{uid}/movimientos/{id}` | El cuidador, admin | Solo servidor | `tipo` (`recarga`, `comision`, `devolucion`, `ajuste`), `monto` con signo, `saldoResultante`, `servicioId`, `mascotaNombre` |
 | `pagos/{id}` | Su dueño | Solo servidor | Recargas y Premium: `tipo`, `monto`, `estado` (`pendiente`, `pagado`, `fallido`), `proveedor`, `idCheckout` (preferencia de Mercado Pago), `idExterno` (id del pago en la pasarela), `motivo` si falló |
 | `servicios/{id}` | Participantes; cuidadores verificados si `estado = buscando` | Solo servidor | Solicitud y servicio (ver abajo) |
-| `servicios/{id}/ofertas/{cuidadorId}` | El dueño y ese cuidador | Solo servidor | Precio, comisión, lo que recibe, distancia, minutos de llegada, datos del cuidador, `estado`, `expiraEn` |
+| `servicios/{id}/ofertas/{cuidadorId}` | El dueño y ese cuidador | Solo servidor | Precio, comisión, lo que recibe, distancia, minutos de llegada, datos del cuidador, `estado` (`pendiente`, `aceptada`, `rechazada`, `expirada`), `rechazadaPorDueno`, `expiraEn` |
 | `servicios/{id}/ruta/{punto}` | Participantes | Cuidador asignado, en curso | `lat`, `lng`, `registradoEn` |
 | `servicios/{id}/fotos/{id}` | Participantes | Solo servidor (trigger) | Ruta en Storage |
 | `servicios/{id}/calificaciones/{autorId}` | Su autor; ambos cuando `visible` | Solo servidor | Estrellas, etiquetas, comentario, `visible` |

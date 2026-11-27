@@ -147,6 +147,13 @@ test("flujo completo de un paseo", async () => {
   const oferta = await cuidador.llamar("enviarOferta", { servicioId, precio: 2800, lat: -12.122, lng: -77.03 });
   expect(oferta).toMatchObject({ comision: 336, recibes: 2464 });
 
+  // HU-14: el dueño rechaza la oferta; el cuidador puede enviar otra.
+  await expect(cuidador.llamar("rechazarOferta", { servicioId, cuidadorId: carlos })).rejects.toThrow(/no encontrada/);
+  await dueno.llamar("rechazarOferta", { servicioId, cuidadorId: carlos });
+  expect((await db.doc(`servicios/${servicioId}/ofertas/${carlos}`).get()).get("estado")).toBe("rechazada");
+  await expect(dueno.llamar("rechazarOferta", { servicioId, cuidadorId: carlos })).rejects.toThrow(/ya no está disponible/);
+  await cuidador.llamar("enviarOferta", { servicioId, precio: 2800, lat: -12.122, lng: -77.03 });
+
   // HU-14: el dueño acepta; el teléfono queda visible.
   await dueno.llamar("aceptarOferta", { servicioId, cuidadorId: carlos });
   const contacto = await db.doc(`servicios/${servicioId}/privado/contacto`).get();
@@ -171,6 +178,13 @@ test("flujo completo de un paseo", async () => {
   const perfil = (await db.doc(`perfilesPublicos/${carlos}`).get()).data()!;
   expect(perfil).toMatchObject({ numResenas: 1, calificacionPromedio: 5, serviciosCompletados: 1, nivel: "nuevo" });
   expect(perfil.etiquetas).toMatchObject({ Puntual: 1, Cariñoso: 1 });
+  // La reseña del dueño queda pública en el perfil del cuidador, sin datos de contacto.
+  const resena = (await db.doc(`perfilesPublicos/${carlos}/resenas/${servicioId}`).get()).data()!;
+  expect(resena).toMatchObject({ estrellas: 5, etiquetas: ["Puntual", "Cariñoso"], tipoServicio: "paseo" });
+  expect(resena.autorNombre).toMatch(/^\S+( \S\.)?$/);
+  expect(JSON.stringify(resena)).not.toMatch(/\+51/);
+  // La del cuidador al dueño no se publica (solo los cuidadores tienen reseñas públicas).
+  expect((await db.collection(`perfilesPublicos/${dueno.uid}/resenas`).get()).empty).toBe(true);
 
   // HU-30: Libro de Reclamaciones con número correlativo.
   const reclamo = await dueno.llamar("presentarReclamo", {

@@ -4,7 +4,7 @@ Backend de **Mican**, una app al estilo inDrive que une a dueños de perros y ga
 
 > Proyecto universitario. Los montos y reglas marcados como *provisionales* se validarán en el piloto.
 
-> La app móvil (Flutter, Android e iOS) está en [`app/`](app/README.md).
+> La app móvil (Flutter, Android e iOS) está en [`app/`](app/README.md) y el panel web de administración (React) en [`admin/`](admin/README.md).
 
 ## Stack
 
@@ -30,6 +30,7 @@ firestore.rules          Quién puede leer/escribir qué (Firestore)
 firestore.indexes.json   Índices compuestos
 storage.rules            Reglas de archivos (documentos y fotos)
 docs/modelo-de-datos.md  Colecciones, campos y estados
+admin/                   Panel web de administración (React): verificación, reclamos, comisiones
 functions/
   src/config/reglas.ts   ⭐ Todas las reglas de negocio y montos en un solo lugar
   src/dominio/           Lógica pura y probada: comisión, precios, niveles, vacunas, fechas
@@ -57,7 +58,7 @@ npm install
 cp .secret.local.example .secret.local   # secretos de pagos para el emulador
 cp .env.example .env.local               # opcional
 
-npm test                 # 59 pruebas unitarias (dominio y pasarela)
+npm test                 # 62 pruebas unitarias (dominio y pasarela)
 npm run test:reglas      # 14 pruebas de reglas de Firestore y Storage
 npm run test:integracion # flujo completo: registro → recarga → oferta → paseo → comisión → calificación
 npm run serve            # levanta los emuladores con la UI en http://127.0.0.1:4000
@@ -66,8 +67,9 @@ npm run serve            # levanta los emuladores con la UI en http://127.0.0.1:
 Con los emuladores corriendo:
 
 ```bash
-# Dar rol de administrador (para el panel de verificación)
-FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/asignar-admin.js +51999999999
+# Dar rol de administrador (para el panel web, que entra con correo)
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/asignar-admin.js equipo@mican.pe
+# o, más simple: cd ../admin && npm run sembrar (crea admin@mican.pe / mican123 y datos de ejemplo)
 # Confirmar una recarga como si fuera la pasarela
 node scripts/simular-pago.js <pagoId> 2000
 ```
@@ -147,9 +149,9 @@ Respuestas: 200 para todo aviso válido (aunque no cambie nada), 401 si la firma
 | HU-11 Paquete fijo | `crearSolicitud` modalidad `paquete` + `tomarPaquete` (el primero gana) |
 | HU-12 Solicitudes cercanas | `listarSolicitudesCercanas` (3 km, geohash), `cambiarDisponibilidad`, aviso de saldo < S/ 10 |
 | HU-13 Aceptar o contraofertar | `enviarOferta` (desglose de comisión, vence en 60 s) |
-| HU-14 Comparar y elegir | `aceptarOferta` (rechaza las demás), job `cadaMinuto` sugiere subir precio a los 3 min, `subirPrecio` |
+| HU-14 Comparar y elegir | `aceptarOferta` (rechaza las demás), `rechazarOferta` (avisa al cuidador, que puede volver a ofertar), job `cadaMinuto` sugiere subir precio a los 3 min, `subirPrecio` |
 | HU-15 Iniciar y terminar | `iniciarServicio` (< 100 m), `finalizarServicio` (resumen + comisión) |
-| HU-16 Paseo en vivo | La app escribe `servicios/{id}/ruta` cada 10 s (reglas) y el dueño la escucha |
+| HU-16 Paseo en vivo | La app escribe `servicios/{id}/ruta` cada ~10 m, también en segundo plano durante el servicio (reglas), y el dueño la escucha |
 | HU-17 Fotos | Storage `servicios/{id}/fotos/` + trigger; visita exige 1 foto para finalizar |
 | HU-18 Emergencia | `reportarEmergencia` |
 | HU-19 Chat | `chats/{id}/mensajes` (reglas) + trigger `alCrearMensaje` (no leídos, push); se cierra 24 h después |
@@ -157,7 +159,7 @@ Respuestas: 200 para todo aviso válido (aunque no cambie nada), 401 si la firma
 | HU-21 Recargar saldo | `iniciarRecarga` + `webhookPagos` (Mercado Pago, firma verificada, idempotente) |
 | HU-22 Comisión | `finalizarServicio` descuenta el 12 % y registra el movimiento; aviso si saldo < S/ 10 |
 | HU-23 Pagar al cuidador | `metodoPago` (Yape, Plin, efectivo) en la solicitud y en el resumen |
-| HU-24 Calificar | `calificar` (oculta hasta que ambos califiquen o pasen 7 días; 1-2 ★ van a soporte) |
+| HU-24 Calificar | `calificar` (oculta hasta que ambos califiquen o pasen 7 días; 1-2 ★ van a soporte). Al revelarse, la del dueño se publica en `perfilesPublicos/{cuidador}/resenas` |
 | HU-25 Niveles | `dominio/niveles.ts`, se recalcula al revelar calificaciones; `miProgresoNivel`; `registrarIncidente` |
 | HU-26 Anuncios | Colección `anuncios` (lectura); la app no los muestra a Premium ni en paseo en vivo |
 | HU-27 Premium | `suscribirPremium` (7 días gratis), `cancelarPremium`, job `diario` |

@@ -421,6 +421,31 @@ export const aceptarOferta = onCall({ region: REGION }, async (req) => {
   return { ok: true };
 });
 
+/**
+ * HU-14: el dueño rechaza una oferta concreta. El cuidador recibe el aviso al
+ * instante y puede enviar otra oferta mientras la solicitud siga buscando.
+ */
+export const rechazarOferta = onCall({ region: REGION }, async (req) => {
+  const uid = requiereUsuario(req);
+  const d = datos<{ servicioId: string; cuidadorId: string }>(req);
+  if (typeof d.servicioId !== "string" || typeof d.cuidadorId !== "string") falla("invalid-argument", "Faltan datos");
+  const ahora = new Date();
+  await db.runTransaction(async (tx) => {
+    const servicioRef = refServicio(d.servicioId!);
+    const ofertaRef = servicioRef.collection(COL.ofertas).doc(d.cuidadorId!);
+    const [servicio, oferta] = await Promise.all([tx.get(servicioRef), tx.get(ofertaRef)]);
+    if (!servicio.exists || servicio.get("duenoId") !== uid) falla("not-found", "Solicitud no encontrada");
+    if (servicio.get("estado") !== "buscando") falla("failed-precondition", "La solicitud ya no está buscando cuidador");
+    if (!oferta.exists || oferta.get("estado") !== "pendiente") falla("failed-precondition", "La oferta ya no está disponible");
+    tx.update(ofertaRef, { estado: "rechazada", rechazadaPorDueno: true, respondidaEn: ts(ahora) });
+  });
+  await notificar(d.cuidadorId!, "Oferta rechazada", "El dueño no aceptó tu oferta. Puedes enviar otra.", {
+    tipo: "oferta_rechazada",
+    servicioId: d.servicioId!,
+  });
+  return { ok: true };
+});
+
 /** HU-11: en paquete fijo, el primer cuidador que acepta queda asignado. */
 export const tomarPaquete = onCall({ region: REGION }, async (req) => {
   const uid = requiereUsuario(req);
