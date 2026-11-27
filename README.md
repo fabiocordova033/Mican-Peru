@@ -101,9 +101,9 @@ firebase deploy --only firestore,storage,functions
 | HU-11 Paquete fijo | `crearSolicitud` modalidad `paquete` + `tomarPaquete` (el primero gana) |
 | HU-12 Solicitudes cercanas | `listarSolicitudesCercanas` (3 km, geohash), `cambiarDisponibilidad`, aviso de saldo < S/ 10 |
 | HU-13 Aceptar o contraofertar | `enviarOferta` (desglose de comisión, vence en 60 s) |
-| HU-14 Comparar y elegir | `aceptarOferta` (rechaza las demás), job `cadaMinuto` sugiere subir precio a los 3 min, `subirPrecio` |
+| HU-14 Comparar y elegir | `aceptarOferta` (rechaza las demás), `rechazarOferta` (avisa al cuidador, que puede volver a ofertar), job `cadaMinuto` sugiere subir precio a los 3 min, `subirPrecio` |
 | HU-15 Iniciar y terminar | `iniciarServicio` (< 100 m), `finalizarServicio` (resumen + comisión) |
-| HU-16 Paseo en vivo | La app escribe `servicios/{id}/ruta` cada 10 s (reglas) y el dueño la escucha |
+| HU-16 Paseo en vivo | La app escribe `servicios/{id}/ruta` cada ~10 m, también en segundo plano durante el servicio (reglas), y el dueño la escucha |
 | HU-17 Fotos | Storage `servicios/{id}/fotos/` + trigger; visita exige 1 foto para finalizar |
 | HU-18 Emergencia | `reportarEmergencia` |
 | HU-19 Chat | `chats/{id}/mensajes` (reglas) + trigger `alCrearMensaje` (no leídos, push); se cierra 24 h después |
@@ -111,7 +111,7 @@ firebase deploy --only firestore,storage,functions
 | HU-21 Recargar saldo | `iniciarRecarga` + `webhookPagos` (idempotente) |
 | HU-22 Comisión | `finalizarServicio` descuenta el 12 % y registra el movimiento; aviso si saldo < S/ 10 |
 | HU-23 Pagar al cuidador | `metodoPago` (Yape, Plin, efectivo) en la solicitud y en el resumen |
-| HU-24 Calificar | `calificar` (oculta hasta que ambos califiquen o pasen 7 días; 1-2 ★ van a soporte) |
+| HU-24 Calificar | `calificar` (oculta hasta que ambos califiquen o pasen 7 días; 1-2 ★ van a soporte). Al revelarse, la del dueño se publica en `perfilesPublicos/{cuidador}/resenas` |
 | HU-25 Niveles | `dominio/niveles.ts`, se recalcula al revelar calificaciones; `miProgresoNivel`; `registrarIncidente` |
 | HU-26 Anuncios | Colección `anuncios` (lectura); la app no los muestra a Premium ni en paseo en vivo |
 | HU-27 Premium | `suscribirPremium` (7 días gratis), `cancelarPremium`, job `diario` |

@@ -81,6 +81,15 @@ describe("datos privados (HU-05)", () => {
     await assertSucceeds(getDoc(doc(como("dueno"), "perfilesPublicos/cuidador")));
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "perfilesPublicos/cuidador")));
   });
+  it("las reseñas públicas del cuidador las lee cualquiera autenticado, y nadie las escribe (HU-24)", async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), "perfilesPublicos/cuidador/resenas/s1"), { estrellas: 5, autorNombre: "Ana" }),
+    );
+    await assertSucceeds(getDoc(doc(como("otro"), "perfilesPublicos/cuidador/resenas/s1")));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "perfilesPublicos/cuidador/resenas/s1")));
+    await assertFails(setDoc(doc(como("dueno"), "perfilesPublicos/cuidador/resenas/s2"), { estrellas: 5 }));
+    await assertFails(updateDoc(doc(como("cuidador"), "perfilesPublicos/cuidador/resenas/s1"), { estrellas: 1 }));
+  });
   it("el teléfono se ve durante el servicio", async () => {
     await assertSucceeds(getDoc(doc(como("dueno"), "servicios/s1/privado/contacto")));
     await assertFails(getDoc(doc(como("otro"), "servicios/s1/privado/contacto")));

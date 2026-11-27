@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../componentes/base.dart';
 import '../../componentes/estructura.dart';
 import '../../componentes/tarjetas.dart';
+import '../../datos/modelos.dart';
 import '../../datos/proveedores.dart';
 import '../../tema/colores.dart';
 import '../../tema/iconos.dart';
@@ -34,6 +35,37 @@ class _PantallaPerfilCuidadorState extends ConsumerState<PantallaPerfilCuidador>
     if (!mounted) return;
     setState(() => _aceptando = false);
     if (ok) context.pop();
+  }
+
+  /// HU-24: reseñas públicas (solo las ya reveladas; las escribe el backend).
+  List<Widget> _resenas(int total) {
+    final resenas = ref.watch(resenasProvider(widget.uid)).value ?? const <Resena>[];
+    if (resenas.isEmpty) {
+      return [
+        const TituloSeccion('Reseñas'),
+        Tarjeta(
+          child: Text(
+            total == 0
+                ? 'Aún no tiene reseñas. Cuando complete servicios, aquí verás lo que dicen los dueños.'
+                : 'Cargando reseñas…',
+            style: MicanTexto.leyenda,
+          ),
+        ),
+      ];
+    }
+    return [
+      TituloSeccion(total > resenas.length ? 'Reseñas recientes' : 'Reseñas'),
+      for (final r in resenas)
+        TarjetaResena(
+          autor: r.autorNombre,
+          fotoUrl: r.autorFotoUrl,
+          estrellas: r.estrellas,
+          fecha: fechaRelativa(r.creadoEn, conHora: false),
+          contexto: r.contexto,
+          comentario: r.comentario,
+          etiquetas: r.etiquetas,
+        ),
+    ];
   }
 
   @override
@@ -124,6 +156,7 @@ class _PantallaPerfilCuidadorState extends ConsumerState<PantallaPerfilCuidador>
             ],
           ),
         ],
+        ..._resenas(p.numResenas),
         if (p.experiencia.isNotEmpty) ...[
           const TituloSeccion('Experiencia'),
           Tarjeta(child: Text(p.experiencia, style: MicanTexto.cuerpo)),

@@ -23,7 +23,15 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Usamos tu ubicación para encontrar cuidadores cerca, mostrar el punto de recojo y compartir el paseo en vivo con el dueño.</string>
+	<string>Usamos tu ubicación para encontrar cuidadores cerca, mostrar el punto de recojo y compartir el paseo en vivo con el dueño, también con la pantalla bloqueada mientras el servicio está en curso.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Mican comparte tu ubicación con el dueño solo mientras un paseo o traslado está en curso, aunque bloquees el celular.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>UIStatusBarHidden</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Para enviar fotos de la mascota durante el servicio y fotografiar tus documentos de verificación.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

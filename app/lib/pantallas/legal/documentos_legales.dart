@@ -24,7 +24,7 @@ Future<void> verDocumentoLegal(BuildContext context, DocumentoLegal doc) {
       'Política de privacidad',
       const [
         'Responsable: Mican Perú S.A.C. Tratamos tus datos según la Ley 29733 de Protección de Datos Personales.',
-        'Usamos tu celular para crear tu cuenta y tu ubicación solo para encontrar cuidadores cercanos y mostrar la ruta mientras hay un servicio activo.',
+        'Usamos tu celular para crear tu cuenta y tu ubicación solo para encontrar cuidadores cercanos y mostrar la ruta mientras hay un servicio en curso (también con la app en segundo plano, solo durante el servicio).',
         'Tu DNI y teléfono no se muestran a la otra parte hasta que acepten un servicio, y dejan de verse 24 horas después de terminar.',
         'Los documentos del cuidador (DNI, selfie, antecedentes) solo los ve el equipo de verificación. El certificado de antecedentes se borra al aprobarse.',
         'Las promociones de patrocinadores son opcionales y puedes retirarlas cuando quieras.',

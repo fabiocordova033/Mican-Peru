@@ -601,3 +601,72 @@ class BarraProgreso extends StatelessWidget {
     );
   }
 }
+
+/// Reseña pública en el perfil del cuidador (HU-24): autor, estrellas,
+/// cuándo y qué servicio, el comentario y las etiquetas elegidas.
+class TarjetaResena extends StatelessWidget {
+  const TarjetaResena({
+    super.key,
+    required this.autor,
+    this.fotoUrl,
+    required this.estrellas,
+    this.fecha = '',
+    this.contexto = '',
+    this.comentario = '',
+    this.etiquetas = const [],
+  });
+
+  final String autor;
+  final String? fotoUrl;
+  final int estrellas;
+  final String fecha;
+  final String contexto;
+  final String comentario;
+  final List<String> etiquetas;
+
+  @override
+  Widget build(BuildContext context) {
+    final detalle = [contexto, fecha].where((t) => t.isNotEmpty).join(' · ');
+    return Tarjeta(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Avatar(nombre: autor, fotoUrl: fotoUrl, tamano: 36),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(autor, style: MicanTexto.cuerpoFuerte),
+                    if (detalle.isNotEmpty) Text(detalle, style: MicanTexto.leyenda),
+                  ],
+                ),
+              ),
+              Semantics(
+                label: '$estrellas de 5 estrellas',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [for (var i = 1; i <= 5; i++) EstrellaRellena(tamano: 14, activa: i <= estrellas)],
+                ),
+              ),
+            ],
+          ),
+          if (comentario.isNotEmpty) ...[const SizedBox(height: 10), Text(comentario, style: MicanTexto.cuerpo)],
+          if (etiquetas.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final e in etiquetas)
+                  Pildora(texto: e, fondo: MicanColores.primarioSuave, color: MicanColores.primario, compacta: true),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

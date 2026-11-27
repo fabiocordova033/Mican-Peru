@@ -50,6 +50,17 @@ final perfilProvider = StreamProvider.family<Perfil?, String>((ref, uid) {
       .map((s) => s.exists ? Perfil.desde(uid, s.data()!) : null);
 });
 
+/// Reseñas públicas más recientes de un cuidador (HU-24).
+final resenasProvider = StreamProvider.family<List<Resena>, String>((ref, uid) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('perfilesPublicos/$uid/resenas')
+      .orderBy('creadoEn', descending: true)
+      .limit(20)
+      .snapshots()
+      .map((q) => q.docs.map((d) => Resena.desde(d.id, d.data())).toList());
+});
+
 final miPerfilProvider = Provider<AsyncValue<Perfil?>>((ref) {
   final uid = ref.watch(uidProvider);
   if (uid == null) return const AsyncData(null);

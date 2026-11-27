@@ -144,6 +144,10 @@ class MicanApi {
   Future<void> aceptarOferta(String servicioId, String cuidadorId) =>
       _llamar('aceptarOferta', {'servicioId': servicioId, 'cuidadorId': cuidadorId});
 
+  /// HU-14: rechaza una oferta; el cuidador recibe el aviso y puede ofertar otra vez.
+  Future<void> rechazarOferta(String servicioId, String cuidadorId) =>
+      _llamar('rechazarOferta', {'servicioId': servicioId, 'cuidadorId': cuidadorId});
+
   Future<void> tomarPaquete(String servicioId, double lat, double lng) =>
       _llamar('tomarPaquete', {'servicioId': servicioId, 'lat': lat, 'lng': lng});
 
