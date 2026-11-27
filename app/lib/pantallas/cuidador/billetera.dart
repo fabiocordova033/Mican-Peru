@@ -117,8 +117,9 @@ class PantallaBilletera extends ConsumerWidget {
   };
 }
 
-/// Pantalla 16 · Recargar saldo. El pago se hace en la pasarela (Culqi,
-/// Niubiz o Mercado Pago, aún en modo de prueba) y un webhook acredita el saldo.
+/// Pantalla 16 · Recargar saldo. El pago se hace en el checkout de Mercado
+/// Pago (se abre en el navegador) y un webhook acredita el saldo; la pantalla
+/// de billetera escucha el saldo en Firestore y se actualiza sola.
 class PantallaRecargar extends ConsumerStatefulWidget {
   const PantallaRecargar({super.key});
 
@@ -226,7 +227,7 @@ class _PantallaRecargarState extends ConsumerState<PantallaRecargar> {
         ),
         const NotaConIcono(
           icono: MicanIcono.candado,
-          texto: 'Pagas con Yape, Plin o tarjeta en la pasarela segura. Mican no guarda los datos de tu tarjeta.',
+          texto: 'Pagas con Yape, tarjeta o PagoEfectivo en Mercado Pago. Mican no guarda los datos de tu tarjeta.',
         ),
       ],
     );

@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest test/dominio",
+    "test": "jest test/dominio test/pasarela",
     "test:reglas": "firebase emulators:exec --config ../firebase.json --only firestore,storage --project demo-mican \"jest test/reglas --runInBand\"",
     "serve": "npm run build && firebase emulators:start --project demo-mican",
     "deploy": "firebase deploy --only functions",

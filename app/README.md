@@ -124,7 +124,7 @@ git checkout ios/Runner.xcodeproj/project.pbxproj   # el generador cambia un aju
 
 - **Búsqueda de direcciones:** el destino del transporte usa por ahora las coordenadas del
   recojo; falta autocompletar con Google Places cuando haya API key.
-- **Pagos reales:** la pasarela del backend está simulada; la app abre la `urlPago` que devuelve.
+- **Pagos:** la app abre en el navegador la `urlPago` que devuelve el backend (checkout de Mercado Pago, o la URL ficticia de la pasarela simulada) y el saldo o Premium se actualizan solos cuando llega el webhook.
 - **Ruta si el sistema cierra la app:** el GPS sigue con la pantalla apagada o la app en segundo
   plano, pero si el usuario la cierra a la fuerza (o el sistema la mata) la ruta se detiene
   hasta que vuelva a abrirla.
