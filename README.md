@@ -4,7 +4,7 @@ Backend de **Mican**, una app al estilo inDrive que une a dueños de perros y ga
 
 > Proyecto universitario. Los montos y reglas marcados como *provisionales* se validarán en el piloto.
 
-> La app móvil (Flutter, Android e iOS) está en [`app/`](app/README.md).
+> La app móvil (Flutter, Android e iOS) está en [`app/`](app/README.md) y el panel web de administración (React) en [`admin/`](admin/README.md).
 
 ## Stack
 
@@ -30,6 +30,7 @@ firestore.rules          Quién puede leer/escribir qué (Firestore)
 firestore.indexes.json   Índices compuestos
 storage.rules            Reglas de archivos (documentos y fotos)
 docs/modelo-de-datos.md  Colecciones, campos y estados
+admin/                   Panel web de administración (React): verificación, reclamos, comisiones
 functions/
   src/config/reglas.ts   ⭐ Todas las reglas de negocio y montos en un solo lugar
   src/dominio/           Lógica pura y probada: comisión, precios, niveles, vacunas, fechas
@@ -66,8 +67,9 @@ npm run serve            # levanta los emuladores con la UI en http://127.0.0.1:
 Con los emuladores corriendo:
 
 ```bash
-# Dar rol de administrador (para el panel de verificación)
-FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/asignar-admin.js +51999999999
+# Dar rol de administrador (para el panel web, que entra con correo)
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 node scripts/asignar-admin.js equipo@mican.pe
+# o, más simple: cd ../admin && npm run sembrar (crea admin@mican.pe / mican123 y datos de ejemplo)
 # Confirmar una recarga como si fuera la pasarela
 node scripts/simular-pago.js <pagoId> 2000
 ```
