@@ -102,7 +102,7 @@ flutter test
 - **Reseñas públicas en el perfil del cuidador:** el backend aún no expone una lista de
   reseñas reveladas que cualquier dueño pueda leer; hoy se muestran nota, etiquetas y servicios.
 - **Rechazar una oferta** solo la oculta en el celular del dueño (no hay callable para eso).
-- **Pagos reales:** la pasarela del backend está simulada; la app abre la `urlPago` que devuelve.
+- **Pagos:** la app abre en el navegador la `urlPago` que devuelve el backend (checkout de Mercado Pago, o la URL ficticia de la pasarela simulada) y el saldo o Premium se actualizan solos cuando llega el webhook.
 - **Ruta en segundo plano:** el GPS registra la ruta mientras la app está abierta. Para seguir
   con la pantalla apagada hace falta un servicio en primer plano (Android) y el modo
   "location" de fondo (iOS).

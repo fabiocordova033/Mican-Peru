@@ -13,7 +13,7 @@ Montos en **céntimos** (enteros). Fechas como `Timestamp`. "Solo servidor" sign
 | `verificaciones/{uid}` | El cuidador, admin | Solo servidor | Estado (`incompleta`, `en_revision`, `aprobada`, `rechazada`, `revocada`), estado de cada documento, motivo de rechazo, plazo de 48 h |
 | `billeteras/{uid}` | El cuidador, admin | Solo servidor | `saldo` |
 | `billeteras/{uid}/movimientos/{id}` | El cuidador, admin | Solo servidor | `tipo` (`recarga`, `comision`, `devolucion`, `ajuste`), `monto` con signo, `saldoResultante`, `servicioId`, `mascotaNombre` |
-| `pagos/{id}` | Su dueño | Solo servidor | Recargas y Premium: `tipo`, `monto`, `estado` (`pendiente`, `pagado`, `fallido`), proveedor |
+| `pagos/{id}` | Su dueño | Solo servidor | Recargas y Premium: `tipo`, `monto`, `estado` (`pendiente`, `pagado`, `fallido`), `proveedor`, `idCheckout` (preferencia de Mercado Pago), `idExterno` (id del pago en la pasarela), `motivo` si falló |
 | `servicios/{id}` | Participantes; cuidadores verificados si `estado = buscando` | Solo servidor | Solicitud y servicio (ver abajo) |
 | `servicios/{id}/ofertas/{cuidadorId}` | El dueño y ese cuidador | Solo servidor | Precio, comisión, lo que recibe, distancia, minutos de llegada, datos del cuidador, `estado`, `expiraEn` |
 | `servicios/{id}/ruta/{punto}` | Participantes | Cuidador asignado, en curso | `lat`, `lng`, `registradoEn` |

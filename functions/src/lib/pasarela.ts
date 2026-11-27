@@ -1,26 +1,40 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
- * Abstracción de la pasarela de pagos peruana (Culqi, Mercado Pago, Niubiz,
- * Izipay). Mican nunca guarda datos de tarjeta: la app abre el checkout de la
- * pasarela y la pasarela confirma por webhook.
+ * Abstracción de la pasarela de pagos. Mican nunca guarda datos de tarjeta:
+ * la app abre el checkout de la pasarela y la pasarela confirma por webhook.
  *
- * Hoy solo existe la implementación "simulada" (para el emulador y la
- * demo). Para producción, implementar `Pasarela` con el SDK/API del
- * proveedor elegido y verificar la firma según su documentación.
+ * Implementaciones:
+ *  - "simulada": para el emulador, las pruebas y la demo (scripts/simular-pago.js).
+ *  - "mercadopago": Checkout Pro de Mercado Pago Perú (Yape, tarjetas, PagoEfectivo).
+ *    Ver lib/mercadopago.ts y la sección "Pasarela de pago" del README.
+ *
+ * Este módulo no importa Firebase para poder probarlo con Jest sin emulador.
  */
 export interface CheckoutCreado {
   proveedor: string;
   referencia: string;
-  /** URL o token que la app usa para abrir el checkout. */
+  /** URL que la app abre en el navegador para pagar. */
   urlPago: string;
+  /** Id del checkout en la pasarela (preferencia de Mercado Pago). */
+  idCheckout?: string;
 }
 
 export interface EventoPago {
+  /** Nuestro id de `pagos/{id}` (external_reference en Mercado Pago). */
   referencia: string;
   estado: "pagado" | "fallido";
   motivo?: string;
   montoCentimos: number;
+  /** Id de la transacción en la pasarela, para soporte y devoluciones. */
+  idExterno?: string;
+}
+
+/** Lo que llega al webhook, tal cual lo entrega Cloud Functions. */
+export interface SolicitudWebhook {
+  cuerpo: Buffer;
+  cabeceras: Record<string, string | string[] | undefined>;
+  query: Record<string, unknown>;
 }
 
 export interface Pasarela {
@@ -29,19 +43,58 @@ export interface Pasarela {
     referencia: string;
     montoCentimos: number;
     descripcion: string;
+    tipo: "recarga" | "premium";
   }): Promise<CheckoutCreado>;
-  /** Verifica la firma del webhook y devuelve el evento normalizado. */
-  leerWebhook(cuerpoCrudo: Buffer, cabeceras: Record<string, string | string[] | undefined>, secreto: string): EventoPago;
+  /**
+   * Verifica la firma del webhook y devuelve el evento normalizado, o `null`
+   * si el aviso no cambia nada (otro tipo de notificación, pago aún pendiente).
+   * Lanza `FirmaInvalida` si la firma no corresponde.
+   */
+  leerWebhook(s: SolicitudWebhook): Promise<EventoPago | null>;
+}
+
+/** Credenciales y opciones. Los secretos vienen de Secret Manager. */
+export interface ConfigPasarela {
+  nombre: string;
+  /** Clave secreta con la que la pasarela firma los webhooks. */
+  secretoWebhook: string;
+  /** Access token de Mercado Pago (TEST-... en sandbox, APP_USR-... en producción). */
+  mpAccessToken?: string;
+  /** "sandbox" usa el checkout de pruebas; "produccion" cobra de verdad. */
+  mpModo?: "sandbox" | "produccion";
+  /** URL pública de webhookPagos, se envía como notification_url. */
+  urlWebhook?: string;
+  /** URL a la que vuelve el usuario después de pagar (opcional). */
+  urlRetorno?: string;
+  /** Para pruebas: reemplaza fetch. */
+  fetch?: typeof fetch;
+}
+
+export class FirmaInvalida extends Error {
+  constructor(motivo = "Firma inválida") {
+    super(motivo);
+    this.name = "FirmaInvalida";
+  }
 }
 
 export function firmar(cuerpo: Buffer | string, secreto: string): string {
   return createHmac("sha256", secreto).update(cuerpo).digest("hex");
 }
 
+/** Compara en tiempo constante dos firmas hex. */
+export function mismaFirma(esperada: string, recibida: string): boolean {
+  const a = Buffer.from(esperada);
+  const b = Buffer.from(recibida);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export function firmaValida(cuerpo: Buffer, firma: string, secreto: string): boolean {
-  const esperada = Buffer.from(firmar(cuerpo, secreto));
-  const recibida = Buffer.from(firma);
-  return esperada.length === recibida.length && timingSafeEqual(esperada, recibida);
+  return mismaFirma(firmar(cuerpo, secreto), firma);
+}
+
+export function cabecera(c: SolicitudWebhook["cabeceras"], nombre: string): string | undefined {
+  const v = c[nombre.toLowerCase()];
+  return Array.isArray(v) ? v[0] : v;
 }
 
 /**
@@ -49,40 +102,29 @@ export function firmaValida(cuerpo: Buffer, firma: string, secreto: string): boo
  * { referencia, estado, montoCentimos, motivo? } firmado con HMAC-SHA256 en la
  * cabecera `x-mican-firma`. Ver functions/scripts/simular-pago.js.
  */
-export const pasarelaSimulada: Pasarela = {
-  nombre: "simulada",
-  async crearCheckout({ referencia }) {
-    return {
-      proveedor: "simulada",
-      referencia,
-      urlPago: `https://pagos.simulados.mican.pe/checkout/${referencia}`,
-    };
-  },
-  leerWebhook(cuerpo, cabeceras, secreto) {
-    const firma = cabeceras["x-mican-firma"];
-    if (typeof firma !== "string" || !firmaValida(cuerpo, firma, secreto)) {
-      throw new Error("Firma inválida");
-    }
-    const e = JSON.parse(cuerpo.toString("utf8"));
-    if (typeof e.referencia !== "string" || !["pagado", "fallido"].includes(e.estado)) {
-      throw new Error("Evento inválido");
-    }
-    return {
-      referencia: e.referencia,
-      estado: e.estado,
-      motivo: e.motivo,
-      montoCentimos: Number(e.montoCentimos),
-    };
-  },
-};
-
-export function obtenerPasarela(nombre = process.env.PASARELA ?? "simulada"): Pasarela {
-  switch (nombre) {
-    case "simulada":
-      return pasarelaSimulada;
-    // case "culqi": return pasarelaCulqi;          // TODO producción
-    // case "mercadopago": return pasarelaMercadoPago; // TODO producción
-    default:
-      throw new Error(`Pasarela no implementada: ${nombre}`);
-  }
+export function crearSimulada(secreto: string): Pasarela {
+  return {
+    nombre: "simulada",
+    async crearCheckout({ referencia }) {
+      return {
+        proveedor: "simulada",
+        referencia,
+        urlPago: `https://pagos.simulados.mican.pe/checkout/${referencia}`,
+      };
+    },
+    async leerWebhook({ cuerpo, cabeceras }) {
+      const firma = cabecera(cabeceras, "x-mican-firma");
+      if (!firma || !firmaValida(cuerpo, firma, secreto)) throw new FirmaInvalida();
+      const e = JSON.parse(cuerpo.toString("utf8"));
+      if (typeof e.referencia !== "string" || !["pagado", "fallido"].includes(e.estado)) {
+        throw new Error("Evento inválido");
+      }
+      return {
+        referencia: e.referencia,
+        estado: e.estado,
+        motivo: e.motivo,
+        montoCentimos: Number(e.montoCentimos),
+      };
+    },
+  };
 }

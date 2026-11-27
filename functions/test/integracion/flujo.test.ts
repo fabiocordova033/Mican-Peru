@@ -112,7 +112,24 @@ test("flujo completo de un paseo", async () => {
   const { pagoId } = await cuidador.llamar("iniciarRecarga", { monto: 2000 });
   expect(await webhook(pagoId, 2000)).toBe(200);
   expect(await webhook(pagoId, 2000)).toBe(200);
+  // Un rechazo tardío no deshace la recarga; un aviso sin firma se rechaza.
+  expect(await webhook(pagoId, 2000, "fallido")).toBe(200);
+  const sinFirma = await fetch(`http://127.0.0.1:5001/${PROYECTO}/${REGION}/webhookPagos`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ referencia: pagoId, estado: "pagado", montoCentimos: 2000 }),
+  });
+  expect(sinFirma.status).toBe(401);
   expect((await db.doc(`billeteras/${carlos}`).get()).get("saldo")).toBe(2000);
+  expect((await db.doc(`pagos/${pagoId}`).get()).get("estado")).toBe("pagado");
+
+  // HU-21: si la tarjeta falla, se puede pagar en el mismo checkout (p. ej. con Yape).
+  const segunda = await cuidador.llamar("iniciarRecarga", { monto: 1000 });
+  expect(await webhook(segunda.pagoId, 1000, "fallido")).toBe(200);
+  expect((await db.doc(`pagos/${segunda.pagoId}`).get()).get("estado")).toBe("fallido");
+  expect((await db.doc(`billeteras/${carlos}`).get()).get("saldo")).toBe(2000);
+  expect(await webhook(segunda.pagoId, 1000)).toBe(200);
+  expect((await db.doc(`billeteras/${carlos}`).get()).get("saldo")).toBe(3000);
 
   // HU-10: solicitud con precio dentro del rango.
   const { rango } = await dueno.llamar("cotizar", { tipo: "paseo", duracionMin: 60 });
@@ -142,9 +159,9 @@ test("flujo completo de un paseo", async () => {
 
   // HU-15 / HU-22: al finalizar se descuenta S/ 3.36 del saldo.
   const resumen = await cuidador.llamar("finalizarServicio", { servicioId });
-  expect(resumen).toMatchObject({ precio: 2800, comision: 336, metodoPago: "yape", saldo: 2000 - 336 });
+  expect(resumen).toMatchObject({ precio: 2800, comision: 336, metodoPago: "yape", saldo: 3000 - 336 });
   const movs = await db.collection(`billeteras/${carlos}/movimientos`).orderBy("creadoEn").get();
-  expect(movs.docs.map((m) => [m.get("tipo"), m.get("monto")])).toEqual([["recarga", 2000], ["comision", -336]]);
+  expect(movs.docs.map((m) => [m.get("tipo"), m.get("monto")])).toEqual([["recarga", 2000], ["recarga", 1000], ["comision", -336]]);
 
   // HU-24: la primera calificación queda oculta; con la segunda se revelan.
   const r1 = await dueno.llamar("calificar", { servicioId, estrellas: 5, etiquetas: ["Puntual", "Cariñoso"] });
